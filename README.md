@@ -1,35 +1,32 @@
 # surface-noctalia
 
-Custom Noctalia plugin repository for my Surface-oriented Hyprland setup.
+Custom Noctalia plugin repository for the Surface-oriented Hyprland setup.
 
 ## Included plugin
 
-- `surface-tablet-controls`: bar controls for:
-  - opening `qs-hyprview` recent apps
-  - running the existing `wvkbd` helper scripts: auto, show, hide, disable
+- `surface-tablet-controls`
 
-## Repository layout
+This plugin adds:
 
-This repository follows Noctalia's custom plugin repository format:
+- a bar button for `qs-hyprview` recent apps
+- a bar button and panel for `wvkbd` actions:
+  - auto
+  - show
+  - hide
+  - disable
 
-```text
-surface-noctalia/
-├── registry.json
-└── surface-tablet-controls/
-    ├── manifest.json
-    ├── Main.qml
-    ├── BarWidget.qml
-    ├── Panel.qml
-    ├── Settings.qml
-    ├── README.md
-    └── preview.png
-```
-
-## Default paths expected by the plugin
+## Default paths
 
 - `qs-hyprview`: `~/.config/hypr/apps/qs-hyprview`
 - `wvkbd`: `~/.config/hypr/apps/wvkbd`
 
-## For Noctalia users
+## Install
 
-Push this repository to GitHub, then add that repository URL in the Noctalia Shell plugins UI as a custom repository.
+1. Open Noctalia Shell settings.
+2. Go to the Plugins section.
+3. Add this custom repository:
+   - `https://github.com/PickleHik3/surface-noctalia`
+4. Install `Surface Tablet Controls`.
+5. Add the widget to your bar.
+
+This repository follows Noctalia's custom plugin repository format with a root `registry.json` and plugin subdirectories.

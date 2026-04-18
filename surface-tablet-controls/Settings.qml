@@ -23,35 +23,50 @@ ColumnLayout {
         label: "qs-hyprview path"
         description: "Path passed to quickshell ipc -p"
         text: root.editRecentAppsPath
-        onEditingFinished: root.editRecentAppsPath = text
+        onEditingFinished: {
+            root.editRecentAppsPath = text
+            root.saveSettings()
+        }
     }
 
     NTextInput {
         Layout.fillWidth: true
         label: "Keyboard auto script"
         text: root.editKeyboardAutoScript
-        onEditingFinished: root.editKeyboardAutoScript = text
+        onEditingFinished: {
+            root.editKeyboardAutoScript = text
+            root.saveSettings()
+        }
     }
 
     NTextInput {
         Layout.fillWidth: true
         label: "Keyboard show script"
         text: root.editKeyboardShowScript
-        onEditingFinished: root.editKeyboardShowScript = text
+        onEditingFinished: {
+            root.editKeyboardShowScript = text
+            root.saveSettings()
+        }
     }
 
     NTextInput {
         Layout.fillWidth: true
         label: "Keyboard hide script"
         text: root.editKeyboardHideScript
-        onEditingFinished: root.editKeyboardHideScript = text
+        onEditingFinished: {
+            root.editKeyboardHideScript = text
+            root.saveSettings()
+        }
     }
 
     NTextInput {
         Layout.fillWidth: true
         label: "Keyboard disable script"
         text: root.editKeyboardDisableScript
-        onEditingFinished: root.editKeyboardDisableScript = text
+        onEditingFinished: {
+            root.editKeyboardDisableScript = text
+            root.saveSettings()
+        }
     }
 
     function saveSettings() {
