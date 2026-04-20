@@ -38,10 +38,13 @@ PluginComponent {
     readonly property string keyboardShowScript: pluginData.keyboardShowScript || "$HOME/.config/hypr/apps/wvkbd/scripts/show-wvkbd.sh"
     readonly property string keyboardHideScript: pluginData.keyboardHideScript || "$HOME/.config/hypr/apps/wvkbd/scripts/hide-wvkbd.sh"
     readonly property string keyboardDisableScript: pluginData.keyboardDisableScript || "$HOME/.config/hypr/apps/wvkbd/scripts/disable-wvkbd.sh"
+    readonly property string keyboardDisabledFlag: String(Quickshell.env("XDG_RUNTIME_DIR") || "/run/user/" + String(Quickshell.env("UID") || "")) + "/wvkbd-custom/disabled"
     readonly property string homeCommand: pluginData.homeCommand || ""
     readonly property int actionButtonSize: Math.max(30, iconSize + Theme.spacingS)
     readonly property string browserClassRegex: "^(firefox|org\\.mozilla\\.firefox|librewolf|floorp|zen|zen-browser|chromium|google-chrome|google-chrome-beta|google-chrome-unstable|brave-browser|com\\.brave\\.Browser|microsoft-edge|microsoft-edge-beta|com\\.microsoft\\.Edge|vivaldi|vivaldi-stable)$"
     readonly property string fileManagerClassRegex: "^(org\\.gnome\\.Nautilus|nautilus|thunar|org\\.xfce\\.Thunar|dolphin|org\\.kde\\.dolphin|pcmanfm|pcmanfm-qt|nemo|org\\.cinnamon\\.Nemo)$"
+    readonly property bool isKeyboardAction: actionKind === "keyboardToggle"
+    property bool keyboardDisabled: false
 
     function shellQuote(value) {
         return "'" + String(value).replace(/'/g, "'\"'\"'") + "'";
@@ -155,6 +158,17 @@ PluginComponent {
         runShell(toggleScript, "Keyboard toggle");
     }
 
+    function refreshKeyboardState() {
+        keyboardStateProbe.running = false;
+        keyboardStateProbe.exec({
+            command: [
+                "bash",
+                "-lc",
+                "[[ -f " + shellQuote(keyboardDisabledFlag) + " ]] && printf disabled || printf enabled"
+            ]
+        });
+    }
+
     function keyboardAuto() {
         runScriptPath(expandHome(keyboardAutoScript), "Keyboard auto");
         closePopout();
@@ -247,12 +261,6 @@ PluginComponent {
         }
 
         const backScript = [
-            "if /usr/bin/dms ipc launcher close >/dev/null 2>&1; then",
-            "  exit 0",
-            "fi",
-            "if /usr/bin/dms ipc control-center hide >/dev/null 2>&1; then",
-            "  exit 0",
-            "fi",
             "active_class=\"$(hyprctl -j activewindow | jq -r '(.class // .initialClass // \"\")')\"",
             "if [[ -z \"${active_class}\" || \"${active_class}\" == \"null\" ]]; then",
             "  exit 0",
@@ -271,6 +279,7 @@ PluginComponent {
 
     Component.onCompleted: {
         Qt.callLater(root.ensureDefaultVariants);
+        Qt.callLater(root.refreshKeyboardState);
     }
 
     onPluginServiceChanged: {
@@ -287,7 +296,10 @@ PluginComponent {
                 visible: root.isVariant
                 buttonSize: root.actionButtonSize
                 iconName: root.variantIcon
-                iconColor: root.actionKind === "recentApps" ? Theme.primary : Theme.surfaceText
+                iconColor: root.actionKind === "recentApps" ? Theme.primary : root.isKeyboardAction ? (root.keyboardDisabled ? Theme.surfaceVariantText : Theme.primary) : Theme.surfaceText
+                backgroundColor: root.isKeyboardAction && !root.keyboardDisabled ? Theme.surfaceContainerLow : "transparent"
+                indicatorVisible: root.isKeyboardAction
+                indicatorColor: root.keyboardDisabled ? Theme.error : Theme.primary
                 onClicked: root.runVariantAction()
             }
 
@@ -306,7 +318,10 @@ PluginComponent {
                 ActionButton {
                     buttonSize: root.actionButtonSize
                     iconName: "keyboard"
-                    iconColor: Theme.surfaceText
+                    iconColor: root.keyboardDisabled ? Theme.surfaceVariantText : Theme.primary
+                    backgroundColor: root.keyboardDisabled ? "transparent" : Theme.surfaceContainerLow
+                    indicatorVisible: true
+                    indicatorColor: root.keyboardDisabled ? Theme.error : Theme.primary
                     onClicked: root.triggerPopout()
                 }
             }
@@ -323,7 +338,10 @@ PluginComponent {
                 visible: root.isVariant
                 buttonSize: root.actionButtonSize
                 iconName: root.variantIcon
-                iconColor: root.actionKind === "recentApps" ? Theme.primary : Theme.surfaceText
+                iconColor: root.actionKind === "recentApps" ? Theme.primary : root.isKeyboardAction ? (root.keyboardDisabled ? Theme.surfaceVariantText : Theme.primary) : Theme.surfaceText
+                backgroundColor: root.isKeyboardAction && !root.keyboardDisabled ? Theme.surfaceContainerLow : "transparent"
+                indicatorVisible: root.isKeyboardAction
+                indicatorColor: root.keyboardDisabled ? Theme.error : Theme.primary
                 onClicked: root.runVariantAction()
             }
 
@@ -342,7 +360,10 @@ PluginComponent {
                 ActionButton {
                     buttonSize: root.actionButtonSize
                     iconName: "keyboard"
-                    iconColor: Theme.surfaceText
+                    iconColor: root.keyboardDisabled ? Theme.surfaceVariantText : Theme.primary
+                    backgroundColor: root.keyboardDisabled ? "transparent" : Theme.surfaceContainerLow
+                    indicatorVisible: true
+                    indicatorColor: root.keyboardDisabled ? Theme.error : Theme.primary
                     onClicked: root.triggerPopout()
                 }
             }
@@ -495,10 +516,35 @@ PluginComponent {
         }
 
         onExited: exitCode => {
+            if (root.lastAction.indexOf("Keyboard") === 0)
+                root.refreshKeyboardState();
             if (exitCode !== 0 && !root.lastError) {
                 root.lastError = "Command failed with exit code " + exitCode;
                 ToastService.showError("Surface Tablet Controls", root.lastError);
             }
         }
+    }
+
+    Process {
+        id: keyboardStateProbe
+
+        running: false
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const state = text.trim();
+                if (state === "disabled")
+                    root.keyboardDisabled = true;
+                else if (state === "enabled")
+                    root.keyboardDisabled = false;
+            }
+        }
+    }
+
+    Timer {
+        interval: 1500
+        running: true
+        repeat: true
+        onTriggered: root.refreshKeyboardState()
     }
 }
