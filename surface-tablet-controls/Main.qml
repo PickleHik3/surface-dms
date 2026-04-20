@@ -17,9 +17,21 @@ PluginComponent {
     property string lastAction: ""
     property string lastError: ""
 
-    readonly property bool isVariant: variantData !== null
-    readonly property string actionKind: variantData && variantData.action ? variantData.action : "menu"
-    readonly property string variantIcon: variantData && variantData.icon ? variantData.icon : "widgets"
+    readonly property var effectiveVariantData: {
+        if (variantData)
+            return variantData;
+        if (!variantId || !variants)
+            return null;
+        for (let i = 0; i < variants.length; i++) {
+            const item = variants[i];
+            if (item && item.id === variantId)
+                return item;
+        }
+        return null;
+    }
+    readonly property bool isVariant: variantId !== ""
+    readonly property string actionKind: effectiveVariantData && effectiveVariantData.action ? effectiveVariantData.action : "menu"
+    readonly property string variantIcon: effectiveVariantData && effectiveVariantData.icon ? effectiveVariantData.icon : "widgets"
     readonly property string recentAppsPath: pluginData.recentAppsPath || "$HOME/.config/hypr/apps/qs-hyprview"
     readonly property string keyboardAutoScript: pluginData.keyboardAutoScript || "$HOME/.config/hypr/apps/wvkbd/scripts/auto-show-wvkbd.sh"
     readonly property string keyboardShowScript: pluginData.keyboardShowScript || "$HOME/.config/hypr/apps/wvkbd/scripts/show-wvkbd.sh"
@@ -51,7 +63,7 @@ PluginComponent {
             return;
 
         const defaults = [
-            { name: "Recent Apps", action: "recentApps", icon: "apps" },
+            { name: "Recent Apps", action: "recentApps", icon: "grid_view" },
             { name: "Keyboard Toggle", action: "keyboardToggle", icon: "keyboard" },
             { name: "Back", action: "back", icon: "arrow_back" },
             { name: "Home", action: "home", icon: "home" }
@@ -90,8 +102,16 @@ PluginComponent {
         });
     }
 
+    function runCommand(args, actionLabel) {
+        root.lastAction = actionLabel || "";
+        root.lastError = "";
+        executor.exec({
+            command: args
+        });
+    }
+
     function runScriptPath(scriptPath, actionLabel) {
-        runShell(shellQuote(scriptPath), actionLabel);
+        runCommand([expandHome(scriptPath)], actionLabel);
     }
 
     function runVariantAction() {
@@ -108,7 +128,16 @@ PluginComponent {
     }
 
     function openRecentApps() {
-        runShell("quickshell ipc -p " + shellQuote(expandHome(recentAppsPath)) + " call expose open smartgrid", "Recent apps");
+        runCommand([
+            "/usr/bin/quickshell",
+            "ipc",
+            "-p",
+            expandHome(recentAppsPath),
+            "call",
+            "expose",
+            "open",
+            "smartgrid"
+        ], "Recent apps");
     }
 
     function keyboardToggle() {
@@ -239,71 +268,73 @@ PluginComponent {
     }
 
     horizontalBarPill: Component {
-        Loader {
-            sourceComponent: root.isVariant ? variantPillHorizontal : groupedPillHorizontal
+        Item {
+            implicitWidth: root.isVariant ? variantButton.width : groupedRow.implicitWidth
+            implicitHeight: root.actionButtonSize
+
+            ActionButton {
+                id: variantButton
+                visible: root.isVariant
+                buttonSize: root.actionButtonSize
+                iconName: root.variantIcon
+                iconColor: root.actionKind === "recentApps" ? Theme.primary : Theme.surfaceText
+                onClicked: root.runVariantAction()
+            }
+
+            Row {
+                id: groupedRow
+                visible: !root.isVariant
+                spacing: Theme.spacingXS
+
+                ActionButton {
+                    buttonSize: root.actionButtonSize
+                    iconName: "grid_view"
+                    iconColor: Theme.primary
+                    onClicked: root.openRecentApps()
+                }
+
+                ActionButton {
+                    buttonSize: root.actionButtonSize
+                    iconName: "keyboard"
+                    iconColor: Theme.surfaceText
+                    onClicked: root.triggerPopout()
+                }
+            }
         }
     }
 
     verticalBarPill: Component {
-        Loader {
-            sourceComponent: root.isVariant ? variantPillVertical : groupedPillVertical
-        }
-    }
-
-    property Component variantPillHorizontal: Component {
-        ActionButton {
-            buttonSize: root.actionButtonSize
-            iconName: root.variantIcon
-            iconColor: root.actionKind === "recentApps" ? Theme.primary : Theme.surfaceText
-            onClicked: root.runVariantAction()
-        }
-    }
-
-    property Component variantPillVertical: Component {
-        ActionButton {
-            buttonSize: root.actionButtonSize
-            iconName: root.variantIcon
-            iconColor: root.actionKind === "recentApps" ? Theme.primary : Theme.surfaceText
-            onClicked: root.runVariantAction()
-        }
-    }
-
-    property Component groupedPillHorizontal: Component {
-        Row {
-            spacing: Theme.spacingXS
+        Item {
+            implicitWidth: root.actionButtonSize
+            implicitHeight: root.isVariant ? variantButton.height : groupedColumn.implicitHeight
 
             ActionButton {
+                id: variantButton
+                visible: root.isVariant
                 buttonSize: root.actionButtonSize
-                iconName: "apps"
-                iconColor: Theme.primary
-                onClicked: root.openRecentApps()
+                iconName: root.variantIcon
+                iconColor: root.actionKind === "recentApps" ? Theme.primary : Theme.surfaceText
+                onClicked: root.runVariantAction()
             }
 
-            ActionButton {
-                buttonSize: root.actionButtonSize
-                iconName: "keyboard"
-                iconColor: Theme.surfaceText
-                onClicked: root.triggerPopout()
-            }
-        }
-    }
+            Column {
+                id: groupedColumn
+                visible: !root.isVariant
+                spacing: Theme.spacingXS
 
-    property Component groupedPillVertical: Component {
-        Column {
-            spacing: Theme.spacingXS
+                ActionButton {
+                    buttonSize: root.actionButtonSize
+                    iconName: "grid_view"
+                    iconColor: Theme.primary
+                    onClicked: root.openRecentApps()
+                }
 
-            ActionButton {
-                buttonSize: root.actionButtonSize
-                iconName: "apps"
-                iconColor: Theme.primary
-                onClicked: root.openRecentApps()
-            }
-
-            ActionButton {
-                buttonSize: root.actionButtonSize
-                iconName: "keyboard"
-                iconColor: Theme.surfaceText
-                onClicked: root.triggerPopout()
+                ActionButton {
+                    buttonSize: root.actionButtonSize
+                    iconName: "keyboard"
+                    iconColor: Theme.surfaceText
+                    onClicked: root.triggerPopout()
+                }
             }
         }
     }
@@ -335,7 +366,7 @@ PluginComponent {
                     DankButton {
                         width: parent.width
                         text: "Open qs-hyprview"
-                        iconName: "apps"
+                        iconName: "grid_view"
                         onClicked: root.openRecentApps()
                     }
 

@@ -39,7 +39,7 @@ PluginSettings {
         iconName: "widgets"
         onClicked: {
             const defaults = [
-                { name: "Recent Apps", action: "recentApps", icon: "apps" },
+                { name: "Recent Apps", action: "recentApps", icon: "grid_view" },
                 { name: "Keyboard Toggle", action: "keyboardToggle", icon: "keyboard" },
                 { name: "Back", action: "back", icon: "arrow_back" },
                 { name: "Home", action: "home", icon: "home" }
