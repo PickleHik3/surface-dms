@@ -27,7 +27,7 @@ PluginSettings {
 
     StyledText {
         width: parent.width
-        text: "Default widget variants are Recent Apps, Keyboard Toggle, and Back. After enabling the plugin, add those variants from DankBar settings as separate items."
+        text: "Default widget variants are Recent Apps, Keyboard Toggle, Back, and Home. After enabling the plugin, add those variants from DankBar settings as separate items."
         font.pixelSize: Theme.fontSizeSmall
         color: Theme.surfaceVariantText
         wrapMode: Text.WordWrap
@@ -39,9 +39,10 @@ PluginSettings {
         iconName: "widgets"
         onClicked: {
             const defaults = [
-                { name: "Recent Apps", action: "recentApps", icon: "layout_dashboard" },
+                { name: "Recent Apps", action: "recentApps", icon: "apps" },
                 { name: "Keyboard Toggle", action: "keyboardToggle", icon: "keyboard" },
-                { name: "Back", action: "back", icon: "arrow_back" }
+                { name: "Back", action: "back", icon: "arrow_back" },
+                { name: "Home", action: "home", icon: "home" }
             ];
             const existingActions = {};
 
@@ -106,5 +107,13 @@ PluginSettings {
         description: "Script that disables the keyboard automation hook."
         defaultValue: "$HOME/.config/hypr/apps/wvkbd/scripts/disable-wvkbd.sh"
         placeholder: "$HOME/.config/hypr/apps/wvkbd/scripts/disable-wvkbd.sh"
+    }
+
+    StringSetting {
+        settingKey: "homeCommand"
+        label: "Home button command"
+        description: "Optional custom shell command for the Home variant. Leave empty to use the built-in DMS launcher toggle."
+        defaultValue: ""
+        placeholder: "dms ipc launcher toggle"
     }
 }

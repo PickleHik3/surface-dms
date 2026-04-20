@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import Quickshell.Io
 import qs.Common
 import qs.Services
@@ -24,11 +25,25 @@ PluginComponent {
     readonly property string keyboardShowScript: pluginData.keyboardShowScript || "$HOME/.config/hypr/apps/wvkbd/scripts/show-wvkbd.sh"
     readonly property string keyboardHideScript: pluginData.keyboardHideScript || "$HOME/.config/hypr/apps/wvkbd/scripts/hide-wvkbd.sh"
     readonly property string keyboardDisableScript: pluginData.keyboardDisableScript || "$HOME/.config/hypr/apps/wvkbd/scripts/disable-wvkbd.sh"
+    readonly property string homeCommand: pluginData.homeCommand || ""
     readonly property int actionButtonSize: Math.max(30, iconSize + Theme.spacingS)
     readonly property string browserClassRegex: "^(firefox|org\\.mozilla\\.firefox|librewolf|floorp|zen|zen-browser|chromium|google-chrome|google-chrome-beta|google-chrome-unstable|brave-browser|com\\.brave\\.Browser|microsoft-edge|microsoft-edge-beta|com\\.microsoft\\.Edge|vivaldi|vivaldi-stable)$"
+    readonly property string fileManagerClassRegex: "^(org\\.gnome\\.Nautilus|nautilus|thunar|org\\.xfce\\.Thunar|dolphin|org\\.kde\\.dolphin|pcmanfm|pcmanfm-qt|nemo|org\\.cinnamon\\.Nemo)$"
 
     function shellQuote(value) {
         return "'" + String(value).replace(/'/g, "'\"'\"'") + "'";
+    }
+
+    function expandHome(value) {
+        const home = Quickshell.env("HOME") || "";
+        const text = String(value || "");
+        if (!home)
+            return text;
+        if (text === "$HOME")
+            return home;
+        if (text.indexOf("$HOME/") === 0)
+            return home + text.slice(5);
+        return text;
     }
 
     function createDefaultVariants(forceCreate) {
@@ -36,9 +51,10 @@ PluginComponent {
             return;
 
         const defaults = [
-            { name: "Recent Apps", action: "recentApps", icon: "layout_dashboard" },
+            { name: "Recent Apps", action: "recentApps", icon: "apps" },
             { name: "Keyboard Toggle", action: "keyboardToggle", icon: "keyboard" },
-            { name: "Back", action: "back", icon: "arrow_back" }
+            { name: "Back", action: "back", icon: "arrow_back" },
+            { name: "Home", action: "home", icon: "home" }
         ];
         const existingActions = {};
 
@@ -85,12 +101,14 @@ PluginComponent {
             keyboardToggle();
         else if (actionKind === "back")
             universalBack();
+        else if (actionKind === "home")
+            homeAction();
         else
             triggerPopout();
     }
 
     function openRecentApps() {
-        runShell("quickshell ipc -p " + shellQuote(recentAppsPath) + " call expose open smartgrid", "Recent apps");
+        runShell("quickshell ipc -p " + shellQuote(expandHome(recentAppsPath)) + " call expose open smartgrid", "Recent apps");
     }
 
     function keyboardToggle() {
@@ -99,35 +117,102 @@ PluginComponent {
             "DISABLED_FLAG=\"${STATE_DIR}/disabled\"",
             "mkdir -p \"${STATE_DIR}\"",
             "if [[ -f \"${DISABLED_FLAG}\" ]]; then",
-            "  " + shellQuote(keyboardAutoScript),
+            "  " + shellQuote(expandHome(keyboardAutoScript)),
             "else",
-            "  " + shellQuote(keyboardDisableScript),
+            "  " + shellQuote(expandHome(keyboardDisableScript)),
             "fi"
         ].join("\n");
         runShell(toggleScript, "Keyboard toggle");
     }
 
     function keyboardAuto() {
-        runScriptPath(keyboardAutoScript, "Keyboard auto");
+        runScriptPath(expandHome(keyboardAutoScript), "Keyboard auto");
         closePopout();
     }
 
     function keyboardShow() {
-        runScriptPath(keyboardShowScript, "Keyboard show");
+        runScriptPath(expandHome(keyboardShowScript), "Keyboard show");
         closePopout();
     }
 
     function keyboardHide() {
-        runScriptPath(keyboardHideScript, "Keyboard hide");
+        runScriptPath(expandHome(keyboardHideScript), "Keyboard hide");
         closePopout();
     }
 
     function keyboardDisable() {
-        runScriptPath(keyboardDisableScript, "Keyboard disable");
+        runScriptPath(expandHome(keyboardDisableScript), "Keyboard disable");
         closePopout();
     }
 
+    function homeAction() {
+        const customCommand = String(homeCommand || "").trim();
+        if (customCommand !== "") {
+            runShell(customCommand, "Home");
+            return;
+        }
+        root.lastAction = "Home";
+        root.lastError = "";
+        if (popoutService)
+            popoutService.toggleDankLauncherV2();
+    }
+
     function universalBack() {
+        if (popoutService && popoutService.controlCenterPopout && popoutService.controlCenterPopout.shouldBeVisible) {
+            popoutService.closeControlCenter();
+            root.lastAction = "Back";
+            root.lastError = "";
+            return;
+        }
+        if (popoutService && popoutService.notificationCenterPopout && popoutService.notificationCenterPopout.shouldBeVisible) {
+            popoutService.closeNotificationCenter();
+            root.lastAction = "Back";
+            root.lastError = "";
+            return;
+        }
+        if (popoutService && popoutService.appDrawerPopout && popoutService.appDrawerPopout.shouldBeVisible) {
+            popoutService.closeAppDrawer();
+            root.lastAction = "Back";
+            root.lastError = "";
+            return;
+        }
+        if (popoutService && popoutService.processListPopout && popoutService.processListPopout.shouldBeVisible) {
+            popoutService.closeProcessList();
+            root.lastAction = "Back";
+            root.lastError = "";
+            return;
+        }
+        if (popoutService && popoutService.dankDashPopout && popoutService.dankDashPopout.dashVisible) {
+            popoutService.closeDankDash();
+            root.lastAction = "Back";
+            root.lastError = "";
+            return;
+        }
+        if (popoutService && popoutService.settingsModal && (popoutService.settingsModal.visible || popoutService.settingsModal.shouldBeVisible)) {
+            popoutService.closeSettings();
+            root.lastAction = "Back";
+            root.lastError = "";
+            return;
+        }
+        if (popoutService && popoutService.clipboardHistoryModal && (popoutService.clipboardHistoryModal.visible || popoutService.clipboardHistoryModal.shouldBeVisible)) {
+            popoutService.clipboardHistoryModal.close();
+            root.lastAction = "Back";
+            root.lastError = "";
+            return;
+        }
+        if (popoutService && popoutService.dankLauncherV2Modal && (popoutService.dankLauncherV2Modal.spotlightOpen || popoutService.dankLauncherV2Modal.visible)) {
+            popoutService.closeDankLauncherV2();
+            root.lastAction = "Back";
+            root.lastError = "";
+            return;
+        }
+        if (popoutService && popoutService.powerMenuModal && (popoutService.powerMenuModal.visible || popoutService.powerMenuModal.shouldBeVisible)) {
+            popoutService.powerMenuModal.close();
+            root.lastAction = "Back";
+            root.lastError = "";
+            return;
+        }
+
         const backScript = [
             "active_class=\"$(hyprctl -j activewindow | jq -r '(.class // .initialClass // \"\")')\"",
             "if [[ -z \"${active_class}\" || \"${active_class}\" == \"null\" ]]; then",
@@ -135,6 +220,8 @@ PluginComponent {
             "fi",
             "shopt -s nocasematch",
             "if [[ \"${active_class}\" =~ " + browserClassRegex + " ]]; then",
+            "  hyprctl dispatch sendshortcut ALT,left,activewindow",
+            "elif [[ \"${active_class}\" =~ " + fileManagerClassRegex + " ]]; then",
             "  hyprctl dispatch sendshortcut ALT,left,activewindow",
             "else",
             "  hyprctl dispatch sendshortcut ,escape,activewindow",
@@ -187,7 +274,7 @@ PluginComponent {
 
             ActionButton {
                 buttonSize: root.actionButtonSize
-                iconName: "layout_dashboard"
+                iconName: "apps"
                 iconColor: Theme.primary
                 onClicked: root.openRecentApps()
             }
@@ -207,7 +294,7 @@ PluginComponent {
 
             ActionButton {
                 buttonSize: root.actionButtonSize
-                iconName: "layout_dashboard"
+                iconName: "apps"
                 iconColor: Theme.primary
                 onClicked: root.openRecentApps()
             }
@@ -248,7 +335,7 @@ PluginComponent {
                     DankButton {
                         width: parent.width
                         text: "Open qs-hyprview"
-                        iconName: "layout_dashboard"
+                        iconName: "apps"
                         onClicked: root.openRecentApps()
                     }
 
@@ -313,6 +400,13 @@ PluginComponent {
                         text: "Universal back"
                         iconName: "arrow_back"
                         onClicked: root.universalBack()
+                    }
+
+                    DankButton {
+                        width: parent.width
+                        text: "Home"
+                        iconName: "home"
+                        onClicked: root.homeAction()
                     }
 
                     StyledText {

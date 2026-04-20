@@ -16,6 +16,7 @@ DMS plugin repository for the Surface-oriented Hyprland setup.
   - `qs-hyprview`
   - keyboard toggle
   - universal back
+  - home
 
 ## Default paths
 
@@ -43,11 +44,18 @@ The plugin can be used in two ways:
   - `Recent Apps`
   - `Keyboard Toggle`
   - `Back`
+  - `Home`
 
 The `Back` variant uses Hyprland's built-in `sendshortcut` dispatcher:
 
 - browser windows: sends `Alt+Left`
+- file managers: sends `Alt+Left`
 - everything else: sends `Escape`
+
+The `Home` variant:
+
+- defaults to the built-in DMS launcher toggle
+- can be overridden in plugin settings with a custom shell command
 
 ## Files
 
