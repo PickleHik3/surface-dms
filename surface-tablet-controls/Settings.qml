@@ -1,82 +1,110 @@
 import QtQuick
-import QtQuick.Layouts
-import qs.Commons
+import qs.Common
+import qs.Services
 import qs.Widgets
+import qs.Modules.Plugins
 
-ColumnLayout {
+PluginSettings {
     id: root
 
-    property var pluginApi: null
-    property var cfg: pluginApi?.pluginSettings || ({})
-    property var defaults: pluginApi?.manifest?.metadata?.defaultSettings || ({})
+    pluginId: "surfaceTabletControls"
 
-    property string editRecentAppsPath: cfg.recentAppsPath ?? defaults.recentAppsPath ?? ""
-    property string editKeyboardAutoScript: cfg.keyboardAutoScript ?? defaults.keyboardAutoScript ?? ""
-    property string editKeyboardShowScript: cfg.keyboardShowScript ?? defaults.keyboardShowScript ?? ""
-    property string editKeyboardHideScript: cfg.keyboardHideScript ?? defaults.keyboardHideScript ?? ""
-    property string editKeyboardDisableScript: cfg.keyboardDisableScript ?? defaults.keyboardDisableScript ?? ""
+    StyledText {
+        width: parent.width
+        text: "Surface Tablet Controls"
+        font.pixelSize: Theme.fontSizeLarge
+        font.weight: Font.Bold
+        color: Theme.surfaceText
+    }
 
-    spacing: Style.marginL
+    StyledText {
+        width: parent.width
+        text: "Configure the qs-hyprview target path and the wvkbd helper scripts used by the widget."
+        font.pixelSize: Theme.fontSizeSmall
+        color: Theme.surfaceVariantText
+        wrapMode: Text.WordWrap
+    }
 
-    NTextInput {
-        Layout.fillWidth: true
+    StyledText {
+        width: parent.width
+        text: "Default widget variants are Recent Apps, Keyboard Toggle, and Back. After enabling the plugin, add those variants from DankBar settings as separate items."
+        font.pixelSize: Theme.fontSizeSmall
+        color: Theme.surfaceVariantText
+        wrapMode: Text.WordWrap
+    }
+
+    DankButton {
+        width: parent.width
+        text: "Create Missing Default Variants"
+        iconName: "widgets"
+        onClicked: {
+            const defaults = [
+                { name: "Recent Apps", action: "recentApps", icon: "layout_dashboard" },
+                { name: "Keyboard Toggle", action: "keyboardToggle", icon: "keyboard" },
+                { name: "Back", action: "back", icon: "arrow_back" }
+            ];
+            const existingActions = {};
+
+            for (let i = 0; i < root.variants.length; i++) {
+                const item = root.variants[i];
+                if (item && item.action)
+                    existingActions[item.action] = true;
+            }
+
+            let created = 0;
+            for (let i = 0; i < defaults.length; i++) {
+                const item = defaults[i];
+                if (existingActions[item.action])
+                    continue;
+                createVariant(item.name, item);
+                created += 1;
+            }
+
+            root.saveValue("defaultVariantsCreated", true);
+            if (created > 0)
+                ToastService.showInfo("Surface Tablet Controls", "Created " + created + " widget variants");
+            else
+                ToastService.showInfo("Surface Tablet Controls", "All default widget variants already exist");
+        }
+    }
+
+    StringSetting {
+        settingKey: "recentAppsPath"
         label: "qs-hyprview path"
-        description: "Path passed to quickshell ipc -p"
-        text: root.editRecentAppsPath
-        onEditingFinished: {
-            root.editRecentAppsPath = text
-            root.saveSettings()
-        }
+        description: "Path passed to quickshell ipc -p for the recent apps view."
+        defaultValue: "$HOME/.config/hypr/apps/qs-hyprview"
+        placeholder: "$HOME/.config/hypr/apps/qs-hyprview"
     }
 
-    NTextInput {
-        Layout.fillWidth: true
+    StringSetting {
+        settingKey: "keyboardAutoScript"
         label: "Keyboard auto script"
-        text: root.editKeyboardAutoScript
-        onEditingFinished: {
-            root.editKeyboardAutoScript = text
-            root.saveSettings()
-        }
+        description: "Script that enables auto mode and shows the keyboard."
+        defaultValue: "$HOME/.config/hypr/apps/wvkbd/scripts/auto-show-wvkbd.sh"
+        placeholder: "$HOME/.config/hypr/apps/wvkbd/scripts/auto-show-wvkbd.sh"
     }
 
-    NTextInput {
-        Layout.fillWidth: true
+    StringSetting {
+        settingKey: "keyboardShowScript"
         label: "Keyboard show script"
-        text: root.editKeyboardShowScript
-        onEditingFinished: {
-            root.editKeyboardShowScript = text
-            root.saveSettings()
-        }
+        description: "Script that forces the keyboard visible."
+        defaultValue: "$HOME/.config/hypr/apps/wvkbd/scripts/show-wvkbd.sh"
+        placeholder: "$HOME/.config/hypr/apps/wvkbd/scripts/show-wvkbd.sh"
     }
 
-    NTextInput {
-        Layout.fillWidth: true
+    StringSetting {
+        settingKey: "keyboardHideScript"
         label: "Keyboard hide script"
-        text: root.editKeyboardHideScript
-        onEditingFinished: {
-            root.editKeyboardHideScript = text
-            root.saveSettings()
-        }
+        description: "Script that hides the keyboard."
+        defaultValue: "$HOME/.config/hypr/apps/wvkbd/scripts/hide-wvkbd.sh"
+        placeholder: "$HOME/.config/hypr/apps/wvkbd/scripts/hide-wvkbd.sh"
     }
 
-    NTextInput {
-        Layout.fillWidth: true
+    StringSetting {
+        settingKey: "keyboardDisableScript"
         label: "Keyboard disable script"
-        text: root.editKeyboardDisableScript
-        onEditingFinished: {
-            root.editKeyboardDisableScript = text
-            root.saveSettings()
-        }
-    }
-
-    function saveSettings() {
-        if (!pluginApi)
-            return;
-        pluginApi.pluginSettings.recentAppsPath = root.editRecentAppsPath;
-        pluginApi.pluginSettings.keyboardAutoScript = root.editKeyboardAutoScript;
-        pluginApi.pluginSettings.keyboardShowScript = root.editKeyboardShowScript;
-        pluginApi.pluginSettings.keyboardHideScript = root.editKeyboardHideScript;
-        pluginApi.pluginSettings.keyboardDisableScript = root.editKeyboardDisableScript;
-        pluginApi.saveSettings();
+        description: "Script that disables the keyboard automation hook."
+        defaultValue: "$HOME/.config/hypr/apps/wvkbd/scripts/disable-wvkbd.sh"
+        placeholder: "$HOME/.config/hypr/apps/wvkbd/scripts/disable-wvkbd.sh"
     }
 }

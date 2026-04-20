@@ -1,19 +1,21 @@
-# surface-noctalia
+# surface-dms
 
-Custom Noctalia plugin repository for the Surface-oriented Hyprland setup.
+DMS plugin repository for the Surface-oriented Hyprland setup.
 
-## Included plugin
+## Plugin
 
-- `surface-tablet-controls`
+`Surface Tablet Controls` adds:
 
-This plugin adds:
-
-- a bar button for `qs-hyprview` recent apps
-- a bar button and panel for `wvkbd` actions:
+- a DankBar button for `qs-hyprview` recent apps
+- a DankBar button and popout for `wvkbd` actions:
   - auto
   - show
   - hide
   - disable
+- default separate widget variants for:
+  - `qs-hyprview`
+  - keyboard toggle
+  - universal back
 
 ## Default paths
 
@@ -22,11 +24,38 @@ This plugin adds:
 
 ## Install
 
-1. Open Noctalia Shell settings.
-2. Go to the Plugins section.
-3. Add this custom repository:
-   - `https://github.com/PickleHik3/surface-noctalia`
-4. Install `Surface Tablet Controls`.
-5. Add the widget to your bar.
+1. Clone this repository into the DMS plugin directory:
+   - `mkdir -p ~/.config/DankMaterialShell/plugins`
+   - `git clone https://github.com/PickleHik3/surface-dms ~/.config/DankMaterialShell/plugins/surface-dms`
+2. Open DMS Settings and go to `Plugins`.
+3. Click `Scan for Plugins`.
+4. Enable `Surface Tablet Controls`.
+5. Open the plugin settings and click `Create Missing Default Variants`.
+6. Add the widgets you want to your DankBar layout.
+7. Restart the shell with `dms restart`.
 
-This repository follows Noctalia's custom plugin repository format with a root `registry.json` and plugin subdirectories.
+## Default variants
+
+The plugin can be used in two ways:
+
+- one grouped widget with recent apps and a keyboard popout
+- separate variants that show up as their own DankBar items:
+  - `Recent Apps`
+  - `Keyboard Toggle`
+  - `Back`
+
+The `Back` variant uses Hyprland's built-in `sendshortcut` dispatcher:
+
+- browser windows: sends `Alt+Left`
+- everything else: sends `Escape`
+
+## Files
+
+- [plugin.json](plugin.json)
+- [Main.qml](surface-tablet-controls/Main.qml)
+- [Settings.qml](surface-tablet-controls/Settings.qml)
+
+## Notes
+
+- This repository now follows the DMS plugin format directly.
+- For plugin registry submission, keep `plugin.json`, this README, and a screenshot in the repository root.
