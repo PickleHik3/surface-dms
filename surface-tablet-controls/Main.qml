@@ -17,6 +17,8 @@ PluginComponent {
     property var popoutService: null
     property string lastAction: ""
     property string lastError: ""
+    pillClickAction: isVariant ? runVariantAction : null
+    pillRightClickAction: isVariant ? triggerPopout : null
 
     readonly property var effectiveVariantData: {
         if (variantData)
