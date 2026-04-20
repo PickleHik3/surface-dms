@@ -14,6 +14,7 @@ PluginComponent {
 
     property string variantId: ""
     property var variantData: null
+    property var popoutService: null
     property string lastAction: ""
     property string lastError: ""
 
@@ -180,10 +181,13 @@ PluginComponent {
             runShell(customCommand, "Home");
             return;
         }
-        root.lastAction = "Home";
-        root.lastError = "";
-        if (popoutService)
+        if (popoutService) {
+            root.lastAction = "Home";
+            root.lastError = "";
             popoutService.toggleDankLauncherV2();
+            return;
+        }
+        runCommand(["/usr/bin/dms", "ipc", "launcher", "toggle"], "Home");
     }
 
     function universalBack() {
@@ -243,6 +247,12 @@ PluginComponent {
         }
 
         const backScript = [
+            "if /usr/bin/dms ipc launcher close >/dev/null 2>&1; then",
+            "  exit 0",
+            "fi",
+            "if /usr/bin/dms ipc control-center hide >/dev/null 2>&1; then",
+            "  exit 0",
+            "fi",
             "active_class=\"$(hyprctl -j activewindow | jq -r '(.class // .initialClass // \"\")')\"",
             "if [[ -z \"${active_class}\" || \"${active_class}\" == \"null\" ]]; then",
             "  exit 0",
